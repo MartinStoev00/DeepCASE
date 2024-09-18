@@ -464,7 +464,7 @@ class ContextBuilder(nn.Module):
         result_attention  = list()
 
         # Memory optimization, only use unique values
-        X, y, inverse = unique_2d(X, y)
+        # X, y, inverse = unique_2d(X, y)
 
         # Ignore given datapoints
         if ignore is not None:
@@ -501,6 +501,7 @@ class ContextBuilder(nn.Module):
         for batch, (X_, y_) in enumerate(batches):
             # Compute initial attention and confidence
             confidence, attention = self.predict(X_, y_)
+            # print(f"{confidence.shape=} {attention.shape=}")
             confidence = confidence.squeeze(1)
             attention  = attention .squeeze(1)
 
@@ -551,13 +552,15 @@ class ContextBuilder(nn.Module):
 
             # Get confidence levels
             confidence_ = self.decoder_event(X_, attn)
+            # print(f"{len(confidence_[0])=}")
             confidence_ = confidence_[torch.arange(y_.shape[0]), y_].exp().detach()
             confidence  = confidence [torch.arange(y_.shape[0]), y_].exp().detach()
-
+            # print(f"{confidence_.shape=} {confidence.shape=} {y_.shape=}")
             # Check where confidence improved
             mask = confidence_ > confidence
 
             # Store attention if we improved
+            # print(f"{mask.shape=} {attn.shape=} {attention.shape=}")
             attention[mask] = attn[mask]
 
             # Recompute confidence
@@ -590,10 +593,10 @@ class ContextBuilder(nn.Module):
             confidence_orig  = torch.cat(confidence_orig )
             confidence_optim = torch.cat(confidence_optim)
             # Return result
-            return confidence, attention, inverse, confidence_orig, confidence_optim
+            return confidence, attention, confidence_orig, confidence_optim
 
         # Return result
-        return confidence, attention, inverse
+        return confidence, attention
 
 
     ########################################################################

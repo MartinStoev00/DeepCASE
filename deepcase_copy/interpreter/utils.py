@@ -126,6 +126,7 @@ def unique_2d(*X):
     # Get input shapes
     shapes = [x.shape[1] for x in X]
 
+
     # Get unique combined inputs
     unique, inverse = torch.unique(
         torch.cat(X, dim=1),

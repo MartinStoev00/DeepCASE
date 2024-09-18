@@ -176,7 +176,7 @@ class Interpreter(object):
                 * -3: Closest cluster > epsilon
             """
         # Get unique samples
-        X, y, inverse_result = unique_2d(X, y)
+        # X, y, inverse_result = unique_2d(X, y)
 
         ####################################################################
         #                         Compute vectors                          #
@@ -259,7 +259,7 @@ class Interpreter(object):
         result = result_
 
         # Return result
-        return result[inverse_result.cpu().numpy()]
+        return result
 
 
     def fit_predict(self,
@@ -708,10 +708,13 @@ class Interpreter(object):
         ####################################################################
 
         logger.info("attended_context: Create vectors")
-
+        print(f"{mask=} {torch.argmax(X[mask], axis=-1).tolist()[0]=}")
         # Perform vectorization
+        X_temp = torch.tensor(torch.argmax(X[mask], axis=-1).tolist()[0])
+        if torch.cuda.is_available():
+            X_temp = X_temp.to('cuda')
         vectors = self.vectorize(
-            X         = X[mask],
+            X         = X_temp,
             attention = attention[mask],
             size      = self.features,
         )
@@ -763,10 +766,10 @@ class Interpreter(object):
                 Optimal attention for predicting event y.
             """
         # Get unique values
-        X, y, inverse = unique_2d(X, y)
+        # X, y, inverse = unique_2d(X, y)
 
         # Perform query
-        confidence, attention, _ = self.context_builder.query(
+        confidence, attention = self.context_builder.query(
             X          = X,
             y          = y,
             iterations = iterations,
@@ -778,7 +781,7 @@ class Interpreter(object):
         confidence = confidence[torch.arange(y.shape[0]), y.squeeze(1)]
 
         # Return confidence and attention
-        return confidence[inverse], attention[inverse]
+        return confidence, attention
 
 
     ########################################################################

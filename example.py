@@ -3,9 +3,9 @@ import numpy as np
 import torch
 
 # DeepCASE Imports
-from deepcase_copy.preprocessing   import Preprocessor
-from deepcase_copy.context_builder import ContextBuilder
-from deepcase_copy.interpreter     import Interpreter
+from deepcase.preprocessing   import Preprocessor
+from deepcase.context_builder import ContextBuilder
+from deepcase.interpreter     import Interpreter
 
 if __name__ == "__main__":
     ########################################################################
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     # Load data from file
     context, events, labels, mapping = preprocessor.csv('alerts.csv', verbose=True)
 
-    print(mapping)
+    # print(mapping)
 
     # In case no labels are provided, set labels to -1
     # IMPORTANT: If no labels are provided, make sure to manually set the labels
@@ -54,26 +54,28 @@ if __name__ == "__main__":
     ########################################################################
 
     # Create ContextBuilder
-    context_builder = ContextBuilder(
-        input_size    = 90,    # Number of input features to expect
-        output_size   = 100,   # Same as input size
-        hidden_size   = 128,   # Number of nodes in hidden layer, in paper we set this to 128
-        max_length    = 10,    # Length of the context, should be same as context in Preprocessor
-    )
+    # context_builder = ContextBuilder(
+    #     input_size    = 90,    # Number of input features to expect
+    #     output_size   = 100,   # Same as input size
+    #     hidden_size   = 128,   # Number of nodes in hidden layer, in paper we set this to 128
+    #     max_length    = 10,    # Length of the context, should be same as context in Preprocessor
+    # )
+
+    context_builder = ContextBuilder.load('save/builder.save')
 
     # Cast to cuda if available
     if torch.cuda.is_available():
         context_builder = context_builder.to('cuda')
 
     # Train the ContextBuilder
-    context_builder.fit(
-        X             = context_train,               # Context to train with
-        y             = events_train.reshape(-1, 1), # Events to train with, note that these should be of shape=(n_events, 1)
-        epochs        = 10,                          # Number of epochs to train with
-        batch_size    = 128,                         # Number of samples in each training batch, in paper this was 128
-        learning_rate = 0.01,                        # Learning rate to train with, in paper this was 0.01
-        verbose       = True,                        # If True, prints progress
-    )
+    # context_builder.fit(
+    #     X             = context_train,               # Context to train with
+    #     y             = events_train.reshape(-1, 1), # Events to train with, note that these should be of shape=(n_events, 1)
+    #     epochs        = 10,                          # Number of epochs to train with
+    #     batch_size    = 128,                         # Number of samples in each training batch, in paper this was 128
+    #     learning_rate = 0.01,                        # Learning rate to train with, in paper this was 0.01
+    #     verbose       = True,                        # If True, prints progress
+    # )
 
     ########################################################################
     #                          Using Interpreter                           #

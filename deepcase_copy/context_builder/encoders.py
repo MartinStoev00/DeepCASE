@@ -48,7 +48,7 @@ class Encoder(nn.Module):
         # Set embedding dimension
         self.embedding_size = self.embedding.embedding_dim
 
-    def forward(self, input, hidden=None, already_embedded=False):
+    def forward(self, input, hidden=None, already_embedded=True):
         """Encode data
 
             Parameters
