@@ -133,5 +133,7 @@ if __name__ == "__main__":
         verbose    = True,                       # If True, prints progress
     )
 
+    interpreter.save("save/interpreter.save")
+
     print(prediction)
     print(labels_test)

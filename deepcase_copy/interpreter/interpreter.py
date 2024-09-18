@@ -630,14 +630,23 @@ class Interpreter(object):
         # Initialise result
         result = sp.csc_matrix((X.shape[0], size))
         range  = np.arange(X.shape[0], dtype=int)
-
+        if len(X.shape) == 1:
+            X = X.unsqueeze(0)
         # Create vectors
+
         for i, events in enumerate(torch.unbind(X, dim=1)):
-            result += sp.csc_matrix(
-                (attention[:, i].detach().cpu().numpy(),
-                (range, events.cpu().numpy())),
-                shape=(X.shape[0], size)
-            )
+            # print(f"{attention[:, i].detach().cpu().numpy().shape=}")
+            # print(f"{range.shape=}")
+            # print(f"{events.cpu().numpy().shape=}")
+            # print(f"{(X.shape[0], size)=}")
+            try:
+                result += sp.csc_matrix(
+                    (attention[:, i].detach().cpu().numpy(),
+                    (range, events.cpu().numpy())),
+                    shape=(X.shape[0], size)
+                )
+            except:
+                exit(0)
 
         # Return result
         return result
@@ -708,11 +717,15 @@ class Interpreter(object):
         ####################################################################
 
         logger.info("attended_context: Create vectors")
-        print(f"{mask=} {torch.argmax(X[mask], axis=-1).tolist()[0]=}")
+        # print(f"{mask=} {torch.argmax(X[mask], axis=-1).tolist()[0]=}")
         # Perform vectorization
         X_temp = torch.tensor(torch.argmax(X[mask], axis=-1).tolist()[0])
         if torch.cuda.is_available():
             X_temp = X_temp.to('cuda')
+
+        if len(X_temp.shape) == 1:
+            X_temp = X_temp.unsqueeze(0)
+        # print(f"{X_temp=}")
         vectors = self.vectorize(
             X         = X_temp,
             attention = attention[mask],
