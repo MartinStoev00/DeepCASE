@@ -310,7 +310,7 @@ class ContextBuilder(nn.Module):
         return self
 
 
-    def predict(self, X, y=None, steps=1):
+    def predict(self, X, y=None, steps=1, training=True):
         """Predict the next elements in sequence.
 
             Parameters
@@ -338,8 +338,13 @@ class ContextBuilder(nn.Module):
         # # Set to prediction mode
         # self.eval()
 
-        self.training = True
-        self.train()
+        if training:
+            self.training = True
+            self.train()
+        else:
+            self.training = False
+            self.eval()
+
         logger.info("predict {} unique samples".format(X.shape[0]))
 
         # Do not perform gradient descent
@@ -347,8 +352,10 @@ class ContextBuilder(nn.Module):
         # Perform all in single batch
         confidence, attention = self.forward(X, steps=steps)
 
-        # Reset to original mode
-        # self.train(mode)
+        self.training = True
+        self.train()
+
+        # print(confidence, attention)
 
         # Return result
         return confidence, attention
