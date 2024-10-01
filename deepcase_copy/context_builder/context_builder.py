@@ -99,7 +99,7 @@ class ContextBuilder(nn.Module):
     #                        ContextBuilder Forward                        #
     ########################################################################
 
-    def forward(self, X, y=None, steps=1, teach_ratio=0.5):
+    def forward(self, X, y=None, steps=1, teach_ratio=0.5, training=True):
         """Forwards data through ContextBuilder.
 
             Parameters
@@ -127,7 +127,6 @@ class ContextBuilder(nn.Module):
                 Attention corrsponding to X given as (batch, out_seq, in_seq).
             """
         logger.info("forward {} samples".format(X.shape[0]))
-
         ####################################################################
         #                   Perform check on events in X                   #
         ####################################################################
@@ -187,6 +186,7 @@ class ContextBuilder(nn.Module):
             else:
                 decoder_input = confidence_.argmax(dim=1).detach().unsqueeze(1)
 
+        self.train(training)
         # Return result
         return torch.stack(confidence, dim=1), torch.stack(attention, dim=1)
 
@@ -194,7 +194,6 @@ class ContextBuilder(nn.Module):
     ########################################################################
     #                         Fit/predict methods                          #
     ########################################################################
-
     def fit(self, X, y, epochs=10, batch_size=128, learning_rate=0.01,
             optimizer=optim.SGD, teach_ratio=0.5, verbose=True):
         """Fit the sequence predictor with labelled data
@@ -309,7 +308,6 @@ class ContextBuilder(nn.Module):
         # Return self
         return self
 
-
     def predict(self, X, y=None, steps=1, training=True):
         """Predict the next elements in sequence.
 
@@ -330,34 +328,13 @@ class ContextBuilder(nn.Module):
 
             attention : torch.Tensor of shape=(n_samples, input_length)
                 Attention corrsponding to X given as (batch, out_seq, seq_len)
+                :param steps:
+                :param y:
+                :param training:
             """
-        logger.info("predict {} samples".format(X.shape[0]))
-
-        # # Get current mode
-        # mode = self.training
-        # # Set to prediction mode
-        # self.eval()
-
-        if training:
-            self.training = True
-            self.train()
-        else:
-            self.training = False
-            self.eval()
-
-        logger.info("predict {} unique samples".format(X.shape[0]))
-
-        # Do not perform gradient descent
-        # with torch.grad():
-        # Perform all in single batch
-        confidence, attention = self.forward(X, steps=steps)
-
-        self.training = True
-        self.train()
-
-        # print(confidence, attention)
-
-        # Return result
+        self.train(training)
+        confidence, attention = self.forward(X, steps=steps, training=training)
+        self.train(True)
         return confidence, attention
 
 

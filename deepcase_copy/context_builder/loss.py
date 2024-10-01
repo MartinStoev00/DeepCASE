@@ -26,7 +26,7 @@ class LabelSmoothing(nn.Module):
         self.smoothing  =       smoothing
         self.confidence = 1.0 - smoothing
 
-    def forward(self, x, target, weights=None, attention=None):
+    def forward(self, x, target, weights=None, attention=None, training=True):
         """Forward data"""
         # Check if shape of data is the same as expected
         assert x.size(-1) == self.size
@@ -34,6 +34,7 @@ class LabelSmoothing(nn.Module):
         if x.ndim != target.ndim:
             target = target.unsqueeze(-1)
 
+        # self.train(training)
         # Create true distribution
         true_dist = x.data.clone()
         true_dist.fill_(self.smoothing / (self.size - 1))
