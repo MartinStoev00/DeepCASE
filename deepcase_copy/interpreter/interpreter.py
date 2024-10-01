@@ -117,7 +117,7 @@ class Interpreter(object):
                 Returns self
             """
         # Call cluster method
-        clusters = self.cluster(
+        cluclusterssters = self.cluster(
             X          = X,
             y          = y,
             iterations = iterations,
