@@ -19,7 +19,7 @@ if __name__ == "__main__":
     )
 
     # Load data from file
-    context, events, labels, mapping = preprocessor.csv('alerts.csv', verbose=True)
+    context, events, labels, mapping = preprocessor.csv('save/alerts.csv', verbose=True)
 
     # print(mapping)
 
@@ -89,45 +89,46 @@ if __name__ == "__main__":
         min_samples     = 5,               # Minimum number of samples to use for DBSCAN clustering, in paper this was 5
         threshold       = 0.2,             # Confidence threshold used for determining if attention from the ContextBuilder can be used, in paper this was 0.2
     )
-
-    # Cluster samples with the interpreter
-    clusters = interpreter.cluster(
-        X          = context_train,               # Context to train with
-        y          = events_train.reshape(-1, 1), # Events to train with, note that these should be of shape=(n_events, 1)
-        iterations = 100,                         # Number of iterations to use for attention query, in paper this was 100
-        batch_size = 1024,                        # Batch size to use for attention query, used to limit CUDA memory usage
-        verbose    = True,                        # If True, prints progress
-    )
-
-    ########################################################################
-    #                             Manual mode                              #
-    ########################################################################
-
-    # Compute scores for each cluster based on individual labels per sequence
-    scores = interpreter.score_clusters(
-        scores   = labels_train, # Labels used to compute score (either as loaded by Preprocessor, or put your own labels here)
-        strategy = "max",        # Strategy to use for scoring (one of "max", "min", "avg")
-        NO_SCORE = -1,           # Any sequence with this score will be ignored in the strategy.
-                                 # If assigned a cluster, the sequence will inherit the cluster score.
-                                 # If the sequence is not present in a cluster, it will receive a score of NO_SCORE.
-    )
-
-    # Assign scores to clusters in interpreter
-    # Note that all sequences should be given a score and each sequence in the
-    # same cluster should have the same score.
-    interpreter.score(
-        scores  = scores, # Scores to assign to sequences
-        verbose = True,   # If True, prints progress
-    )
+    #
+    # # Cluster samples with the interpreter
+    # clusters = interpreter.cluster(
+    #     X          = context_train,               # Context to train with
+    #     y          = events_train.reshape(-1, 1), # Events to train with, note that these should be of shape=(n_events, 1)
+    #     iterations = 100,                         # Number of iterations to use for attention query, in paper this was 100
+    #     batch_size = 1024,                        # Batch size to use for attention query, used to limit CUDA memory usage
+    #     verbose    = True,                        # If True, prints progress
+    # )
+    #
+    # ########################################################################
+    # #                             Manual mode                              #
+    # ########################################################################
+    #
+    # # Compute scores for each cluster based on individual labels per sequence
+    # scores = interpreter.score_clusters(
+    #     scores   = labels_train, # Labels used to compute score (either as loaded by Preprocessor, or put your own labels here)
+    #     strategy = "max",        # Strategy to use for scoring (one of "max", "min", "avg")
+    #     NO_SCORE = -1,           # Any sequence with this score will be ignored in the strategy.
+    #                              # If assigned a cluster, the sequence will inherit the cluster score.
+    #                              # If the sequence is not present in a cluster, it will receive a score of NO_SCORE.
+    # )
+    #
+    # # Assign scores to clusters in interpreter
+    # # Note that all sequences should be given a score and each sequence in the
+    # # same cluster should have the same score.
+    # interpreter.score(
+    #     scores  = scores, # Scores to assign to sequences
+    #     verbose = True,   # If True, prints progress
+    # )
 
     ########################################################################
     #                        (Semi-)Automatic mode                         #
     ########################################################################
-
+    uniques = [ 0,  6,  7,  8,  9, 10, 11, 12, 13, 22]
+    selections = [0, 1, 4, 5]
     # Compute predicted scores
     prediction = interpreter.predict(
-        X          = context_test,               # Context to predict
-        y          = events_test.reshape(-1, 1), # Events to predict, note that these should be of shape=(n_events, 1)
+        X          = context_test[uniques][selections],               # Context to predict
+        y          = events_test[uniques][selections].reshape(-1, 1), # Events to predict, note that these should be of shape=(n_events, 1)
         iterations = 100,                        # Number of iterations to use for attention query, in paper this was 100
         batch_size = 1024,                       # Batch size to use for attention query, used to limit CUDA memory usage
         verbose    = True,                       # If True, prints progress
