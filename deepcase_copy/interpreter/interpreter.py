@@ -212,7 +212,9 @@ class Interpreter(object):
             ############################################################
 
             # If event is not in training set, set to -2
+            # print(self.tree)
             if event not in self.tree:
+
                 result[indices] = -2
                 continue
 
@@ -403,7 +405,6 @@ class Interpreter(object):
 
         # Loop over each event
         for event, context_mask in indices_y:
-
             # Compute clusters per event
             clusters = self.dbscan.dbscan(
                 X           = vectors[context_mask],
