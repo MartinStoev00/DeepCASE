@@ -11,34 +11,98 @@ from deepcase.interpreter     import Interpreter
 if __name__ == "__main__":
     preprocessor = Preprocessor(length  = 10, timeout = 86400)
     context, events, labels, mapping = preprocessor.csv('save/alerts.csv', verbose=False)
-    context_builder = ContextBuilder.load('save/builder.save')
-    interpreter = Interpreter.load('save/interpreter.save', context_builder)
-    unique_test = torch.load('save/context_test.pt')
-    unique_train = torch.load('save/context_train.pt')
 
     if torch.cuda.is_available():
         events  = events .to('cuda')
         context = context.to('cuda')
+
+    events_train  = events [ events.shape[0]//5:]
+    events_test   = events [:events.shape[0]//5 ]
+
+    context_train = context[ events.shape[0]//5:]
+    context_test  = context[:events.shape[0]//5]
+
+    labels_train  = labels [ events.shape[0]//5:]
+    labels_test   = labels [:events.shape[0]//5 ]
+
+    context_builder = ContextBuilder(
+        input_size=100,  # Number of input features to expect
+        output_size=100,  # Same as input size
+        hidden_size=128,  # Number of nodes in hidden layer, in paper we set this to 128
+        max_length=10,  # Length of the context, should be same as context in Preprocessor
+    )
+
+
+    # Cast to cuda if available
+    if torch.cuda.is_available():
         context_builder = context_builder.to('cuda')
 
-    events_train  = events [:events.shape[0]//5 ]
-    events_test   = events [ events.shape[0]//5:]
+        # Train the ContextBuilder
+    context_builder.fit(
+        X=context_train,  # Context to train with
+        y=events_train.reshape(-1, 1),  # Events to train with, note that these should be of shape=(n_events, 1)
+        epochs=10,  # Number of epochs to train with
+        batch_size=128,  # Number of samples in each training batch, in paper this was 128
+        learning_rate=0.01,  # Learning rate to train with, in paper this was 0.01
+        verbose=True,  # If True, prints progress
+    )
 
-    context_train = context[:events.shape[0]//5 ]
-    context_test  = context[ events.shape[0]//5:]
 
-    labels_train  = labels [:events.shape[0]//5 ]
-    labels_test   = labels [ events.shape[0]//5:]
+    ########################################################################
+    #                          Using Interpreter                           #
+    ########################################################################
 
-    pick = range(20)
-    # print(f"context={context_train[unique_train][pick]}")
-    # print(f"events={events_train[unique_train][pick]}")
+    # Create Interpreter
+    interpreter = Interpreter(
+        context_builder = context_builder, # ContextBuilder used to fit data
+        features        = 100,             # Number of input features to expect, should be same as ContextBuilder
+        eps             = 0.1,             # Epsilon value to use for DBSCAN clustering, in paper this was 0.1
+        min_samples     = 5,               # Minimum number of samples to use for DBSCAN clustering, in paper this was 5
+        threshold       = 0.2,             # Confidence threshold used for determining if attention from the ContextBuilder can be used, in paper this was 0.2
+    )
 
-    clusters = interpreter.cluster(context_train[unique_train][pick], events_train[unique_train][pick].reshape(-1, 1))
-    cluster_indices = np.where(clusters == 0)[0]
-    print(f"{clusters=}")
-    print(f"{cluster_indices=}")
+    # Cluster samples with the interpreter
+    clusters = interpreter.cluster(
+        X          = context_train,               # Context to train with
+        y          = events_train.reshape(-1, 1), # Events to train with, note that these should be of shape=(n_events, 1)
+        iterations = 100,                         # Number of iterations to use for attention query, in paper this was 100
+        batch_size = 1024,                        # Batch size to use for attention query, used to limit CUDA memory usage
+        verbose    = True,                        # If True, prints progress
+    )
 
-    scores = interpreter.score_clusters(labels_train[unique_train][pick])
-    interpreter.score(scores)
-    prediction = interpreter.predict(context_test[unique_test][pick], events_test[unique_test][pick].reshape(-1, 1))
+    ########################################################################
+    #                             Manual mode                              #
+    ########################################################################
+
+    # Compute scores for each cluster based on individual labels per sequence
+    scores = interpreter.score_clusters(
+        scores   = labels_train, # Labels used to compute score (either as loaded by Preprocessor, or put your own labels here)
+        strategy = "max",        # Strategy to use for scoring (one of "max", "min", "avg")
+        NO_SCORE = -1,           # Any sequence with this score will be ignored in the strategy.
+                                 # If assigned a cluster, the sequence will inherit the cluster score.
+                                 # If the sequence is not present in a cluster, it will receive a score of NO_SCORE.
+    )
+
+    # Assign scores to clusters in interpreter
+    # Note that all sequences should be given a score and each sequence in the
+    # same cluster should have the same score.
+    interpreter.score(
+        scores  = scores, # Scores to assign to sequences
+        verbose = True,   # If True, prints progress
+    )
+
+    ########################################################################
+    #                        (Semi-)Automatic mode                         #
+    ########################################################################
+
+    # Compute predicted scores
+    prediction = interpreter.predict(
+        X          = context_test,               # Context to predict
+        y          = events_test.reshape(-1, 1), # Events to predict, note that these should be of shape=(n_events, 1)
+        iterations = 100,                        # Number of iterations to use for attention query, in paper this was 100
+        batch_size = 1024,                       # Batch size to use for attention query, used to limit CUDA memory usage
+        verbose    = True,                       # If True, prints progress
+    )
+
+    context_builder.save("save/save/builder.save")
+    interpreter.save("save/save/interpreter.save")
