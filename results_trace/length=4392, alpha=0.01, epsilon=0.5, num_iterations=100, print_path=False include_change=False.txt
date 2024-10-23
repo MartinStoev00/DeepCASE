@@ -16570,4 +16570,4 @@
    == [24, 72, 72, XX, XX, XX, XX, XX, XX, XX]
    -> [- , - , - ,  1,  1,  1,  1,  1,  1,  1]
 
-incorrect=1385 changed=0 perturbed=2762 timeout=245
+incorrect=1385 perturbed=2762 timeout=245
